@@ -105,13 +105,15 @@ func (c *Column) setKeyBindings(tui *Tui) {
 }
 
 func (c *Column) setContent(tui *Tui, row, col int) {
-	title := tui.view.columns.columns[tui.pos.focusCol].cards[row].Title
-	url := tui.view.columns.columns[tui.pos.focusCol].cards[row].Url
-	body := tui.view.columns.columns[tui.pos.focusCol].cards[row].Body
+	if len(tui.view.columns.columns[tui.pos.focusCol].cards) > 0 {
+		title := tui.view.columns.columns[tui.pos.focusCol].cards[row].Title
+		url := tui.view.columns.columns[tui.pos.focusCol].cards[row].Url
+		body := tui.view.columns.columns[tui.pos.focusCol].cards[row].Body
 
-	tui.view.content.Clear()
-	tui.view.content.SetText(tview.TranslateANSI(string(markdown.ConvertShellString(fmt.Sprintf("%s\n%s\n\n%s", title, url, body)))))
-	tui.view.content.ScrollTo(0, 0)
+		tui.view.content.Clear()
+		tui.view.content.SetText(tview.TranslateANSI(string(markdown.ConvertShellString(fmt.Sprintf("%s\n%s\n\n%s", title, url, body)))))
+		tui.view.content.ScrollTo(0, 0)
+	}
 }
 
 func (c *Column) forcus(tui *Tui) {
