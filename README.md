@@ -15,7 +15,7 @@ brew install shuntaka9576/tap/kanban
 1. Refer to [Personal access tokens](https://github.com/settings/tokens). Please create an access token.
 2. Please create the following configuration file.
 ```
-$ cat ~/.config/kanban
+$ cat ~/.config/kanban.yml
 github.com:
   - user: [GitHub userID]
     oauth_token: [GitHub access token]

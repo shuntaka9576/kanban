@@ -50,7 +50,7 @@ type configEntry struct {
 }
 
 func configFile() string {
-	dir, _ := homedir.Expand("~/.config/kanban")
+	dir, _ := homedir.Expand("~/.config/kanban.yml")
 	return dir
 }
 
