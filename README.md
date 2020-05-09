@@ -38,7 +38,8 @@ Usage:
 Flags:
       --help              Show help for command
   -R, --repo OWNER/REPO   Select another repository using the OWNER/REPO format
-  -S, --search string     Search project name string[default first project]
+  -S, --search string     Search project name string(default first project)
+  -v, --version           version for kanban
 ```
 
 ## Limit
