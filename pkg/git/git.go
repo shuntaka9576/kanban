@@ -22,5 +22,4 @@ func Repo(owner, name string) (*baseRepository, error) {
 		owner: owner,
 		name:  name,
 	}, nil
-
 }

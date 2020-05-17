@@ -75,9 +75,9 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ownerRepoString, err := cmd.Flags().GetString("repo")
-	if err != nil || ownerRepoString == "" {
-		return FlagError{errors.New("--repo option is required " + ownerRepoString)}
+	baseRepository, err := DetermineBaseRepository(cmd)
+	if err != nil {
+		return err
 	}
 
 	searchString, err := cmd.Flags().GetString("search")
@@ -85,12 +85,6 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ownerRepoList := strings.Split(ownerRepoString, "/")
-	if len(ownerRepoList) != 2 {
-		return FlagError{errors.New("invalid --repo value: " + ownerRepoString + "\nPlease set OWNER/REPO format")}
-	}
-
-	baseRepository, err := git.Repo(ownerRepoList[0], ownerRepoList[1])
 	if err != nil {
 		return err
 	}
@@ -105,4 +99,21 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 	tui.Run(ctx)
 
 	return nil
+}
+
+func DetermineBaseRepository(cmd *cobra.Command) (git.Repository, error) {
+	ownerRepoString, err := cmd.Flags().GetString("repo")
+
+	var repo git.Repository
+	if err != nil || ownerRepoString == "" {
+		return nil, FlagError{errors.New("--repo option is required " + ownerRepoString)}
+	} else {
+		ownerRepoList := strings.Split(ownerRepoString, "/")
+		if len(ownerRepoList) != 2 {
+			return nil, FlagError{errors.New("invalid --repo value: " + ownerRepoString + "\nPlease set OWNER/REPO format")}
+		}
+		repo, err = git.Repo(ownerRepoList[0], ownerRepoList[1])
+	}
+
+	return repo, err
 }
