@@ -106,7 +106,10 @@ func DetermineBaseRepository(cmd *cobra.Command) (git.Repository, error) {
 
 	var repo git.Repository
 	if err != nil || ownerRepoString == "" {
-		return nil, FlagError{errors.New("--repo option is required " + ownerRepoString)}
+		repo, err = git.BaseRepoFromRemote()
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		ownerRepoList := strings.Split(ownerRepoString, "/")
 		if len(ownerRepoList) != 2 {
