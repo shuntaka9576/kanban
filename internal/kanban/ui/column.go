@@ -105,7 +105,7 @@ func (c *Column) setKeyBindings(tui *Tui) {
 }
 
 func (c *Column) setContent(tui *Tui, row, col int) {
-	if len(tui.view.columns.columns[tui.pos.focusCol].cards) > 0 {
+	if len(tui.view.columns.columns[tui.pos.focusCol].cards) > 0 && row > -1 {
 		title := tui.view.columns.columns[tui.pos.focusCol].cards[row].Title
 		url := tui.view.columns.columns[tui.pos.focusCol].cards[row].Url
 		body := tui.view.columns.columns[tui.pos.focusCol].cards[row].Body
