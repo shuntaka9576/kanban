@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/MichaelMure/go-term-markdown v0.1.3
 	github.com/alecthomas/chroma v0.7.2-0.20200304075647-34d9c7143bf5 // indirect
-	github.com/alecthomas/participle v0.4.4 // indirect
+	github.com/alecthomas/repr v0.0.0-20181024024818-d37bc2a10ba1 // indirect
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/gdamore/tcell v1.3.0
 	github.com/google/go-github v17.0.0+incompatible
