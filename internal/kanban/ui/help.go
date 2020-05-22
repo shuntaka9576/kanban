@@ -17,6 +17,8 @@ h        move left column
 l        move right column
 j        move down
 k        move up
+n        move card to right
+b        move card to left
 CtrN     content down
 CtrP     content up
 R        refresh

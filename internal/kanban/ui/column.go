@@ -4,8 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"regexp"
+	"strconv"
+
+	b64 "encoding/base64"
 
 	"github.com/gdamore/tcell"
+	"github.com/google/go-github/github"
 	"github.com/rivo/tview"
 	"github.com/shuntaka9576/kanban/api"
 	"github.com/shuntaka9576/kanban/pkg/markdown"
@@ -17,9 +22,15 @@ type Columns struct {
 	columns []*Column
 }
 
+type Card struct {
+	Id   int64
+	Card api.Card
+}
+
 type Column struct {
 	*tview.Table
-	cards []api.Card
+	cards []*Card
+	Id    int64
 }
 
 func newColumns() *Columns {
@@ -32,6 +43,11 @@ func newColumns() *Columns {
 }
 
 func newColumn(apiColumn api.Column, tui *Tui) *Column {
+	columnIdRE := regexp.MustCompile(`.+:ProjectColumn(\d+)$`)
+	sDec, _ := b64.StdEncoding.DecodeString(apiColumn.Id)
+	match := columnIdRE.FindStringSubmatch(string(sDec))
+	colId, _ := strconv.ParseInt(match[1], 10, 64)
+
 	columnTable := tview.NewTable()
 	columnTable.SetBorder(true)
 	columnTable.SetBackgroundColor(tcell.ColorDefault)
@@ -39,9 +55,20 @@ func newColumn(apiColumn api.Column, tui *Tui) *Column {
 	columnTable.SetSelectedStyle(tcell.Color207, tcell.ColorDefault, tcell.AttrBold)
 	columnTable.SetSelectable(false, false).Select(0, 0).SetFixed(0, 1)
 
+	cards := []*Card{}
+	for _, card := range apiColumn.Cards {
+		cardIdRE := regexp.MustCompile(`.+:ProjectCard(\d+)$`)
+		sDec, _ := b64.StdEncoding.DecodeString(card.Id)
+		match := cardIdRE.FindStringSubmatch(string(sDec))
+		cardId, _ := strconv.ParseInt(match[1], 10, 64)
+
+		cards = append(cards, &Card{Id: cardId, Card: card})
+	}
+
 	column := &Column{
 		Table: columnTable,
-		cards: apiColumn.Cards,
+		cards: cards,
+		Id:    colId,
 	}
 	column.setCards(apiColumn.Cards)
 	column.setKeyBindings(tui)
@@ -89,9 +116,33 @@ func (c *Column) setKeyBindings(tui *Tui) {
 			cmd.Run() // TODO error handling
 		case 'p':
 			row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
-			url := tui.view.columns.columns[tui.pos.focusCol].cards[row].Url
+			url := tui.view.columns.columns[tui.pos.focusCol].cards[row].Card.Url
 			cmd := exec.Command("open", url)
 			cmd.Run() // TODO error handling
+		case 'n':
+			row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
+			cardId := tui.view.columns.columns[tui.pos.focusCol].cards[row].Id
+			ctx := context.Background()
+			nextCardPos := tui.pos.focusCol
+			if tui.pos.focusCol+1 > len(tui.view.columns.columns)-1 {
+				nextCardPos = 0
+			} else {
+				nextCardPos++
+			}
+			tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[nextCardPos].Id})
+			go api.ProjectWithContext(ctx, tui.ghpjSettings.Client, tui.ghpjSettings.Repository, tui.ghpjSettings.SearchString, tui.notice.ghpjChan)
+		case 'b':
+			row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
+			cardId := tui.view.columns.columns[tui.pos.focusCol].cards[row].Id
+			nextCardPos := tui.pos.focusCol
+			if tui.pos.focusCol-1 < 0 {
+				nextCardPos = len(tui.view.columns.columns) - 1
+			} else {
+				nextCardPos--
+			}
+			ctx := context.Background()
+			tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[nextCardPos].Id})
+			go api.ProjectWithContext(ctx, tui.ghpjSettings.Client, tui.ghpjSettings.Repository, tui.ghpjSettings.SearchString, tui.notice.ghpjChan)
 		}
 
 		return event
@@ -106,9 +157,9 @@ func (c *Column) setKeyBindings(tui *Tui) {
 
 func (c *Column) setContent(tui *Tui, row, col int) {
 	if len(tui.view.columns.columns[tui.pos.focusCol].cards) > 0 && row > -1 {
-		title := tui.view.columns.columns[tui.pos.focusCol].cards[row].Title
-		url := tui.view.columns.columns[tui.pos.focusCol].cards[row].Url
-		body := tui.view.columns.columns[tui.pos.focusCol].cards[row].Body
+		title := tui.view.columns.columns[tui.pos.focusCol].cards[row].Card.Title
+		url := tui.view.columns.columns[tui.pos.focusCol].cards[row].Card.Url
+		body := tui.view.columns.columns[tui.pos.focusCol].cards[row].Card.Body
 
 		tui.view.content.Clear()
 		tui.view.content.SetText(tview.TranslateANSI(string(markdown.ConvertShellString(fmt.Sprintf("%s\n%s\n\n%s", title, url, body)))))
@@ -134,8 +185,8 @@ func (c *Column) unForcus(tui *Tui) {
 
 func (c *Column) setCards(cards []api.Card) {
 	cellNo := 0
-
 	for r := 0; r < len(cards); r++ {
+
 		if !cards[r].IsArchived {
 			if cards[r].Title != "" {
 				cell := tview.NewTableCell(cards[r].Title)

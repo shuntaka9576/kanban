@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/go-github/github"
 	"github.com/shuntaka9576/kanban/api"
 	"github.com/shuntaka9576/kanban/internal/kanban/config"
 	"github.com/shuntaka9576/kanban/internal/kanban/ui"
 	"github.com/shuntaka9576/kanban/pkg/git"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"golang.org/x/oauth2"
 )
 
 var RootCmd = &cobra.Command{
@@ -85,17 +87,20 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err != nil {
-		return err
-	}
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
 
 	tui := ui.NewTui(&ui.GhpjSettings{
 		Client:       api.NewGitHubClient(token),
 		Repository:   baseRepository,
 		SearchString: searchString,
+		V3Client:     client,
 	})
 
-	ctx := context.Background()
 	tui.Run(ctx)
 
 	return nil
