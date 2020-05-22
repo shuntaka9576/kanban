@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gdamore/tcell"
+	"github.com/google/go-github/github"
 	"github.com/rivo/tview"
 	"github.com/shuntaka9576/kanban/api"
 	"github.com/shuntaka9576/kanban/pkg/git"
@@ -25,6 +26,7 @@ type GhpjSettings struct {
 	Repository   git.Repository
 	SearchString string
 	ProjectUrl   string
+	V3Client     *github.Client
 }
 
 type Notciation struct {

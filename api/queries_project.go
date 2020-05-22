@@ -13,6 +13,7 @@ type GithubProject struct {
 
 type Column struct {
 	Name  string
+	Id    string
 	Cards []Card
 }
 
@@ -25,6 +26,7 @@ type Card struct {
 	Assignees  []Assignee
 	Note       string
 	IsArchived bool
+	Id         string
 }
 
 type Label struct {
@@ -77,6 +79,7 @@ const projectCardConnectionFragments = `
 				content {
 					...issue
 				}
+				id
 				note
 				isArchived
 			}
@@ -94,6 +97,7 @@ const projectConnectionFragments = `
 						cursor
 						node {
 							name
+							id
 							cards(first: 100) {
 								...projectCardConnection
 							}
@@ -102,6 +106,7 @@ const projectConnectionFragments = `
 				}
 				name
 				url
+				id
 			}
 		}
 	}
@@ -143,6 +148,7 @@ func Project(client *Client, repo git.Repository, searchString string) (*GithubP
 		Content    Issue  `json:"content"`
 		Note       string `json:"note"`
 		IsArchived bool   `json:"isArchived"`
+		Id         string `json:"id"`
 	}
 	type CardEdge struct {
 		Cursor string   `json:"cursor"`
@@ -153,6 +159,7 @@ func Project(client *Client, repo git.Repository, searchString string) (*GithubP
 		Cards struct {
 			Edges []CardEdge `json:"edges"`
 		} `json:"cards"`
+		Id string `json:"id"`
 	}
 	type ColumnEdge struct {
 		Cursor string     `json:"cursor"`
@@ -210,6 +217,7 @@ func Project(client *Client, repo git.Repository, searchString string) (*GithubP
 		for _, columsEdges := range projects.Node.Columns.Edges {
 			column := Column{
 				Name: columsEdges.Node.Name,
+				Id:   columsEdges.Node.Id,
 			}
 			for _, cardEdge := range columsEdges.Node.Cards.Edges {
 				card := Card{
@@ -219,6 +227,7 @@ func Project(client *Client, repo git.Repository, searchString string) (*GithubP
 					Body:       cardEdge.Node.Content.Body,
 					Note:       cardEdge.Node.Note,
 					IsArchived: cardEdge.Node.IsArchived,
+					Id:         cardEdge.Node.Id,
 				}
 				for _, assigneesEdge := range cardEdge.Node.Content.Assignees.Edges {
 					assignee := Assignee{
