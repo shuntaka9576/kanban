@@ -95,14 +95,20 @@ func (c *Column) setKeyBindings(tui *Tui) {
 			row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
 			cardId := tui.view.columns.columns[tui.pos.focusCol].cards[row].Id
 			ctx := context.Background()
-			tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[tui.getRightPos()].Id})
-			go api.ProjectWithContext(ctx, tui.ghpjSettings.Client, tui.ghpjSettings.Repository, tui.ghpjSettings.SearchString, tui.notice.ghpjChan)
+			tui.view.columns.columns[tui.pos.focusCol].cards[row].SetTextColor(tcell.ColorOrange)
+			go func() {
+				tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[tui.getRightPos()].Id})
+				tui.notice.columUpdateDoneChan <- struct{}{}
+			}()
 		case 'b':
 			row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
 			cardId := tui.view.columns.columns[tui.pos.focusCol].cards[row].Id
 			ctx := context.Background()
-			tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[tui.getLeftPos()].Id})
-			go api.ProjectWithContext(ctx, tui.ghpjSettings.Client, tui.ghpjSettings.Repository, tui.ghpjSettings.SearchString, tui.notice.ghpjChan)
+			tui.view.columns.columns[tui.pos.focusCol].cards[row].SetTextColor(tcell.ColorOrange)
+			go func() {
+				tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[tui.getLeftPos()].Id})
+				tui.notice.columUpdateDoneChan <- struct{}{}
+			}()
 		}
 
 		return event

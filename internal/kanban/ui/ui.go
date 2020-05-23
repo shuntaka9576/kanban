@@ -30,7 +30,8 @@ type GhpjSettings struct {
 }
 
 type Notciation struct {
-	ghpjChan chan *api.GithubProject
+	ghpjChan            chan *api.GithubProject
+	columUpdateDoneChan chan struct{}
 }
 
 type View struct {
@@ -50,12 +51,14 @@ func NewTui(g *GhpjSettings) *Tui {
 		return false
 	})
 	ghpjChan := make(chan *api.GithubProject)
+	columUpdateDoneChan := make(chan struct{})
 
 	return &Tui{
 		App:          app,
 		ghpjSettings: g,
 		notice: &Notciation{
-			ghpjChan: ghpjChan,
+			ghpjChan:            ghpjChan,
+			columUpdateDoneChan: columUpdateDoneChan,
 		},
 		pos:  &Pos{},
 		view: &View{},
@@ -73,6 +76,8 @@ func (tui *Tui) Run(ctx context.Context) {
 				fmt.Printf("err!\n")
 			case ghpj := <-tui.notice.ghpjChan:
 				tui.display(ghpj)
+			case <-tui.notice.columUpdateDoneChan:
+				go api.ProjectWithContext(ctx, tui.ghpjSettings.Client, tui.ghpjSettings.Repository, tui.ghpjSettings.SearchString, tui.notice.ghpjChan)
 			}
 		}
 	}()
