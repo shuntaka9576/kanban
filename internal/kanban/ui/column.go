@@ -92,23 +92,27 @@ func (c *Column) setKeyBindings(tui *Tui) {
 			cmd := exec.Command("open", url)
 			cmd.Run() // TODO error handling
 		case 'n':
-			row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
-			cardId := tui.view.columns.columns[tui.pos.focusCol].cards[row].Id
-			ctx := context.Background()
-			tui.view.columns.columns[tui.pos.focusCol].cards[row].SetTextColor(tcell.ColorOrange)
-			go func() {
-				tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[tui.getRightPos()].Id})
-				tui.notice.columUpdateDoneChan <- struct{}{}
-			}()
+			if len(tui.view.columns.columns[tui.pos.focusCol].cards) > 0 {
+				row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
+				cardId := tui.view.columns.columns[tui.pos.focusCol].cards[row].Id
+				ctx := context.Background()
+				tui.view.columns.columns[tui.pos.focusCol].cards[row].SetTextColor(tcell.ColorOrange)
+				go func() {
+					tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[tui.getRightPos()].Id})
+					tui.notice.columUpdateDoneChan <- struct{}{}
+				}()
+			}
 		case 'b':
-			row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
-			cardId := tui.view.columns.columns[tui.pos.focusCol].cards[row].Id
-			ctx := context.Background()
-			tui.view.columns.columns[tui.pos.focusCol].cards[row].SetTextColor(tcell.ColorOrange)
-			go func() {
-				tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[tui.getLeftPos()].Id})
-				tui.notice.columUpdateDoneChan <- struct{}{}
-			}()
+			if len(tui.view.columns.columns[tui.pos.focusCol].cards) > 0 {
+				row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
+				cardId := tui.view.columns.columns[tui.pos.focusCol].cards[row].Id
+				ctx := context.Background()
+				tui.view.columns.columns[tui.pos.focusCol].cards[row].SetTextColor(tcell.ColorOrange)
+				go func() {
+					tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[tui.getLeftPos()].Id})
+					tui.notice.columUpdateDoneChan <- struct{}{}
+				}()
+			}
 		}
 
 		return event
