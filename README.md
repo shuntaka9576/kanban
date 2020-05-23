@@ -6,9 +6,14 @@ A Simple terminal UI for GitHub Project :octocat:.
 ![gif](https://github.com/shuntaka9576/kanban/blob/master/doc/gif/kanban.gif?raw=true)
 
 ## Installation
-```
+```bash
 brew tap shuntaka9576/tap
 brew install shuntaka9576/tap/kanban
+```
+
+```bash
+# Upgrade
+brew upgrade kanban
 ```
 
 ## Configuration
@@ -54,5 +59,4 @@ There are a few limitations. Please give us your feedback.
 |issue|assignees|10|
 
 ## Features
-* [ ] Real time preview
 * [ ] Support organization project bord
