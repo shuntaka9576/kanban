@@ -22,11 +22,6 @@ type Columns struct {
 	columns []*Column
 }
 
-type Card struct {
-	Id   int64
-	Card api.Card
-}
-
 type Column struct {
 	*tview.Table
 	cards []*Card
@@ -44,8 +39,8 @@ func newColumns() *Columns {
 
 func newColumn(apiColumn api.Column, tui *Tui) *Column {
 	columnIdRE := regexp.MustCompile(`.+:ProjectColumn(\d+)$`)
-	sDec, _ := b64.StdEncoding.DecodeString(apiColumn.Id)
-	match := columnIdRE.FindStringSubmatch(string(sDec))
+	nodeId, _ := b64.StdEncoding.DecodeString(apiColumn.Id)
+	match := columnIdRE.FindStringSubmatch(string(nodeId))
 	colId, _ := strconv.ParseInt(match[1], 10, 64)
 
 	columnTable := tview.NewTable()
@@ -55,22 +50,11 @@ func newColumn(apiColumn api.Column, tui *Tui) *Column {
 	columnTable.SetSelectedStyle(tcell.Color207, tcell.ColorDefault, tcell.AttrBold)
 	columnTable.SetSelectable(false, false).Select(0, 0).SetFixed(0, 1)
 
-	cards := []*Card{}
-	for _, card := range apiColumn.Cards {
-		cardIdRE := regexp.MustCompile(`.+:ProjectCard(\d+)$`)
-		sDec, _ := b64.StdEncoding.DecodeString(card.Id)
-		match := cardIdRE.FindStringSubmatch(string(sDec))
-		cardId, _ := strconv.ParseInt(match[1], 10, 64)
-
-		cards = append(cards, &Card{Id: cardId, Card: card})
-	}
-
 	column := &Column{
 		Table: columnTable,
-		cards: cards,
+		cards: []*Card{},
 		Id:    colId,
 	}
-	column.setCards(apiColumn.Cards)
 	column.setKeyBindings(tui)
 
 	return column
@@ -90,23 +74,11 @@ func (c *Column) setKeyBindings(tui *Tui) {
 		switch event.Rune() {
 		case 'h':
 			tui.view.columns.columns[tui.pos.focusCol].unForcus(tui)
-
-			if tui.pos.focusCol-1 < 0 {
-				tui.pos.focusCol = len(tui.view.columns.columns) - 1
-			} else {
-				tui.pos.focusCol--
-			}
-
+			tui.pos.focusCol = tui.getLeftPos()
 			tui.view.columns.columns[tui.pos.focusCol].forcus(tui)
 		case 'l':
 			tui.view.columns.columns[tui.pos.focusCol].unForcus(tui)
-
-			if tui.pos.focusCol+1 > len(tui.view.columns.columns)-1 {
-				tui.pos.focusCol = 0
-			} else {
-				tui.pos.focusCol++
-			}
-
+			tui.pos.focusCol = tui.getRightPos()
 			tui.view.columns.columns[tui.pos.focusCol].forcus(tui)
 		case 'R':
 			ctx := context.Background()
@@ -123,25 +95,13 @@ func (c *Column) setKeyBindings(tui *Tui) {
 			row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
 			cardId := tui.view.columns.columns[tui.pos.focusCol].cards[row].Id
 			ctx := context.Background()
-			nextCardPos := tui.pos.focusCol
-			if tui.pos.focusCol+1 > len(tui.view.columns.columns)-1 {
-				nextCardPos = 0
-			} else {
-				nextCardPos++
-			}
-			tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[nextCardPos].Id})
+			tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[tui.getRightPos()].Id})
 			go api.ProjectWithContext(ctx, tui.ghpjSettings.Client, tui.ghpjSettings.Repository, tui.ghpjSettings.SearchString, tui.notice.ghpjChan)
 		case 'b':
 			row, _ := tui.view.columns.columns[tui.pos.focusCol].GetSelection()
 			cardId := tui.view.columns.columns[tui.pos.focusCol].cards[row].Id
-			nextCardPos := tui.pos.focusCol
-			if tui.pos.focusCol-1 < 0 {
-				nextCardPos = len(tui.view.columns.columns) - 1
-			} else {
-				nextCardPos--
-			}
 			ctx := context.Background()
-			tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[nextCardPos].Id})
+			tui.ghpjSettings.V3Client.Projects.MoveProjectCard(ctx, cardId, &github.ProjectCardMoveOptions{Position: "top", ColumnID: tui.view.columns.columns[tui.getLeftPos()].Id})
 			go api.ProjectWithContext(ctx, tui.ghpjSettings.Client, tui.ghpjSettings.Repository, tui.ghpjSettings.SearchString, tui.notice.ghpjChan)
 		}
 
@@ -183,20 +143,33 @@ func (c *Column) unForcus(tui *Tui) {
 	c.SetTitleColor(tcell.ColorWhite)
 }
 
-func (c *Column) setCards(cards []api.Card) {
-	cellNo := 0
-	for r := 0; r < len(cards); r++ {
+func (c *Column) SetCards(cards []api.Card) {
+	var colNum = 0
+	for _, apiCard := range cards {
+		var text string
 
-		if !cards[r].IsArchived {
-			if cards[r].Title != "" {
-				cell := tview.NewTableCell(cards[r].Title)
-				c.SetCell(cellNo, 0, cell)
-				cellNo++
-			} else if cards[r].Note != "" {
-				cell := tview.NewTableCell(emoji.Sprintf(":memo:") + cards[r].Note)
-				c.SetCell(cellNo, 0, cell)
-				cellNo++
+		if apiCard.IsArchived {
+			continue
+		} else {
+			if apiCard.Title != "" {
+				text = apiCard.Title
+			} else if apiCard.Note != "" {
+				text = emoji.Sprintf(":memo:") + apiCard.Note
 			}
 		}
+		card := &Card{
+			TableCell: tview.NewTableCell(text),
+		}
+		cardIdRE := regexp.MustCompile(`.+:ProjectCard(\d+)$`)
+		nodeId, _ := b64.StdEncoding.DecodeString(apiCard.Id)
+		match := cardIdRE.FindStringSubmatch(string(nodeId))
+		cardId, _ := strconv.ParseInt(match[1], 10, 64)
+
+		card.Card = apiCard
+		card.Id = cardId
+
+		c.SetCell(colNum, 0, card.TableCell)
+		c.cards = append(c.cards, card)
+		colNum++
 	}
 }

@@ -106,6 +106,22 @@ func (tui *Tui) initialize() {
 	tui.App.SetRoot(allGrid, true)
 }
 
+func (tui *Tui) getLeftPos() int {
+	if tui.pos.focusCol-1 < 0 {
+		return len(tui.view.columns.columns) - 1
+	} else {
+		return tui.pos.focusCol - 1
+	}
+}
+
+func (tui *Tui) getRightPos() int {
+	if tui.pos.focusCol+1 > len(tui.view.columns.columns)-1 {
+		return 0
+	} else {
+		return tui.pos.focusCol + 1
+	}
+}
+
 func (tui *Tui) display(ghpj *api.GithubProject) {
 	posBackup := false
 	var beforePos *Pos
@@ -126,6 +142,8 @@ func (tui *Tui) display(ghpj *api.GithubProject) {
 
 		for i, column := range ghpj.Columns {
 			col := newColumn(column, tui)
+			col.SetCards(column.Cards)
+
 			tui.view.columns.AddItem(col, 0, i, 1, 1, 0, 0, false)
 			tui.view.columns.columns = append(tui.view.columns.columns, col)
 		}
